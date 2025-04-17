@@ -1,0 +1,229 @@
+
+
+=== FILE: clusterrole.yaml ===
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: CLO835
+rules:
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clo835-binding
+subjects:
+- kind: ServiceAccount
+  name: clo835
+  namespace: final
+roleRef:
+  kind: ClusterRole
+  name: CLO835
+  apiGroup: rbac.authorization.k8s.io
+
+
+=== FILE: configmap.yaml ===
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-config
+  namespace: final
+data:
+  S3_BUCKET: "clo835-final-project-aahmed236-1744839370"
+  S3_KEY: "background1.jpg"
+  GROUP_NAME: "CLO835 Team - aahmed236"
+  GROUP_SLOGAN: "Containerize, Orchestrate, Dominate!"
+
+
+=== FILE: mysql-deployment.yaml ===
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: final
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: 549079173707.dkr.ecr.us-east-1.amazonaws.com/mysql:latest
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: MYSQL_DATABASE
+          value: employees
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+      imagePullSecrets:
+      - name: ecr-secret
+
+
+=== FILE: mysql-pvc.yaml ===
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: final
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+
+=== FILE: mysql-secret.yaml ===
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: final
+type: Opaque
+data:
+  username: cm9vdA==
+  password: cGFzc3dvcmQ=
+
+
+=== FILE: mysql-service.yaml ===
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: final
+spec:
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+    targetPort: 3306
+  type: ClusterIP
+
+
+=== FILE: serviceaccount.yaml ===
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clo835
+  namespace: final
+
+
+=== FILE: webapp-deployment.yaml ===
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  namespace: final
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+      - name: webapp
+        image: 549079173707.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
+        ports:
+        - containerPort: 81
+        env:
+        - name: DBHOST
+          value: mysql
+        - name: DBPORT
+          value: "3306"
+        - name: DBUSER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: DBPWD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        - name: DATABASE
+          value: employees
+        - name: S3_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: webapp-config
+              key: S3_BUCKET
+        - name: S3_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: webapp-config
+              key: S3_KEY
+        - name: GROUP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: webapp-config
+              key: GROUP_NAME
+        - name: GROUP_SLOGAN
+          valueFrom:
+            configMapKeyRef:
+              name: webapp-config
+              key: GROUP_SLOGAN
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-secret
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-secret
+              key: AWS_SECRET_ACCESS_KEY
+        - name: AWS_SESSION_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: aws-secret
+              key: AWS_SESSION_TOKEN
+        - name: AWS_REGION
+          value: us-east-1
+      imagePullSecrets:
+      - name: ecr-secret
+
+
+=== FILE: webapp-service.yaml ===
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp
+  namespace: final
+spec:
+  selector:
+    app: webapp
+  ports:
+    - port: 81
+      targetPort: 81
+  type: LoadBalancer

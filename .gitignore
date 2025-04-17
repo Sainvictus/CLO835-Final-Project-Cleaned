@@ -1,0 +1,56 @@
+# Secrets and credentials
+*secret*.yaml
+*secret*.yml
+.aws/
+.docker/
+.kube/
+*credentials*
+.env
+*.pem
+*.key
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Docker
+.docker/
+
+# Kubernetes artifacts
+kubeconfig
+.kube/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Node
+node_modules/
+npm-debug.log
+
+# Misc
+.DS_Store
+.vscode/
+*.log
+*.bak
